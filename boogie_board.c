@@ -2,44 +2,36 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int isZero(unsigned char *s,int bytes);
+void capture(FILE *f);
 
 int main() {
 	int i;
+	int counter = 0;
 	int zero=1;
-	int bytes=120;
+	int bytes=8;
 	unsigned char s[bytes];
 	FILE *f = fopen("/dev/usb/hiddev0", "rb");
 
-	for(i=0;i<120;i++) {
-		s[i] = 0;
-	}
-
 	while (1) {
 
-		while(isZero(s, bytes) == 1) {
-			fread(s, sizeof(char), 120, f);
+		fread(s, sizeof(char), bytes, f);
+		
+		if(s[4] == 27) {
+			counter++;
+			printf("%d\n", counter);
 		}
 		
 		for(i=0;i<bytes;i++) {
 			if(i%8 == 0) {
-				printf("\n");
+				//printf("\n");
 			}
-			printf("%02x ", s[i]);
+			//printf("%02x ", s[i]);
 		}
-		printf("\n");
-		fseek(f, 0, SEEK_END);
+		//printf("\n");
 	}
 	return 0;
 }
 
-int isZero(unsigned char *s, int bytes) {
-	int i;
-	int zero = 1;
-	for(i=0;i<bytes;i++) {
-		if(s[i] != 0) {
-			zero=0;
-		}
-	}
-	return zero;
+void capture(FILE *f) {
+	
 }
