@@ -1,0 +1,16 @@
+Worked with minicom to see some real interesting input - starting to see patterns related to where the pen is on the screen.
+	-bottom left makes certain straight lines when full screen hex
+	-ctrl+a,z,o to configure
+
+need to find a way to connect minicom to a C program
+	-https://stackoverflow.com/questions/11334150/cant-save-the-output-of-minicom-into-a-file
+	-use shell script to start the thing - to call command from above
+		-then it'll write data to the file.
+		-I read the data from C and then do my magic coding
+		-Use the program to draw a thing, SAVE IT
+		-Then terminate shell script - manually?
+
+maybe just to be able to be my mouse. 
+
+Wrote an equivalent program in C that prints out one signal of the board
+	-learned the pattern in the data, there are 8 hex digits worth of positional data.
