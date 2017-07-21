@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <X11/Xlib.h>
 
 #define HOVER 32
 #define PRESS 33
@@ -8,6 +9,8 @@
 
 void capture(FILE *f, unsigned char *s, int bytes, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
+void draw(int vertical, int horizontal, int hover);
+int toPixels(int coordinate);
 
 int main() {
 	int i;
@@ -17,8 +20,15 @@ int main() {
 	int horizontal;
 	int hover=0;
 	int bytes=8;
+	int screenWidth;
+	int screenHeight;
 	unsigned char s[bytes];
 	FILE *f = fopen("/dev/usb/hiddev0", "rb");
+
+	Display* d = XOpenDisplay(NULL);
+	Screen* s = DefaultScreenOfDisplay(d);
+	screenWidth=s->width;
+	screenHeight=s->height;
 
 	while (1) {
 		fread(s, sizeof(char), bytes, f);
@@ -26,6 +36,7 @@ int main() {
 		if(s[4] == SIGNAL) {
 			capture(f, s, bytes, &hover, &vertical, &horizontal);
 			printf("%d-%02d,%02d\n", hover, horizontal, vertical);
+			draw(toPixel(vertical, screenHeight), toPixel(horizontal, screenWidth), hover);
 		}
 	}
 
@@ -72,6 +83,14 @@ int combine(short dollars, short cents) {
 	int combined = 0;
 	combined = dollars + (cents << 8) ;
 	return combined;
+}
+
+void draw(int vertical, int horizontal, int hover) {
+
+}
+
+int toPixels(int coordinate, int pixel) {
+		
 }
 
 
