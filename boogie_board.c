@@ -6,15 +6,16 @@
 #define PRESS 33
 #define SIGNAL 27
 
-void capture(FILE *f, unsigned char *s, int bytes, short *vertical, short *horizontal);
-short combine(char dollars, char cents);
+void capture(FILE *f, unsigned char *s, int bytes, int *hover, int *vertical, int *horizontal);
+int combine(short dollars, short cents);
 
 int main() {
 	int i;
 	int counter = 0;
 	int zero=1;
-	short vertical;
-	short horizontal;
+	int vertical;
+	int horizontal;
+	int hover=0;
 	int bytes=8;
 	unsigned char s[bytes];
 	FILE *f = fopen("/dev/usb/hiddev0", "rb");
@@ -22,20 +23,20 @@ int main() {
 	while (1) {
 		fread(s, sizeof(char), bytes, f);
 		
-		if(s[4] == 27) {
-			capture(f, s, bytes, &vertical, &horizontal);
+		if(s[4] == SIGNAL) {
+			capture(f, s, bytes, &hover, &vertical, &horizontal);
+			printf("%d-%02d,%02d\n", hover, horizontal, vertical);
 		}
 	}
 
 	return 0;
 }
 
-void capture(FILE *f, unsigned char *s, int bytes, short *vertical, short *horizontal) {
+void capture(FILE *f, unsigned char *s, int bytes, int *hover,int *vertical, int *horizontal) {
 
 	int i;
-	int hover=0;
-	char cents;
-	char dollars;
+	short cents;
+	short dollars;
 
 	//eat up two lines of useless information
 	fread(s, sizeof(char), bytes, f);
@@ -44,9 +45,9 @@ void capture(FILE *f, unsigned char *s, int bytes, short *vertical, short *horiz
 	fread(s, sizeof(char), bytes, f);
 
 	if(s[4] == HOVER) {
-		hover=1;
+		*hover=1;
 	} else if (s[4] == PRESS) {
-		hover=0;	
+		*hover=0;	
 	}
 
 	fread(s, sizeof(char), bytes, f);
@@ -55,8 +56,7 @@ void capture(FILE *f, unsigned char *s, int bytes, short *vertical, short *horiz
 	fread(s, sizeof(char), bytes, f);
 	dollars = s[4];
 	
-	printf("%d%d\n", dollars, cents);
-	//*vertical = combine(cents, dollars);
+	*vertical = combine(cents, dollars);
 
 	fread(s, sizeof(char), bytes, f);
 	cents = s[4];
@@ -64,13 +64,13 @@ void capture(FILE *f, unsigned char *s, int bytes, short *vertical, short *horiz
 	fread(s, sizeof(char), bytes, f);
 	dollars = s[4];
 	
-	printf("%0x%0x\n", dollars, cents);
-	//*horizontal = combine(cents, dollars);
+	*horizontal = combine(cents, dollars);
 
 }
 
-short combine(char dollars, char cents) {
-	short combined = 0;
+int combine(short dollars, short cents) {
+	int combined = 0;
+	combined = dollars + (cents << 8) ;
 	return combined;
 }
 
