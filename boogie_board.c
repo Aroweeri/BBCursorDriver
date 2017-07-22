@@ -10,7 +10,7 @@
 void capture(FILE *f, unsigned char *s, int bytes, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
 void draw(int vertical, int horizontal, int hover);
-int toPixels(int coordinate);
+int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
 int main() {
 	int i;
@@ -22,21 +22,26 @@ int main() {
 	int bytes=8;
 	int screenWidth;
 	int screenHeight;
+	int coordinateVerticalMin=250;
+	int coordinateVerticalMax=13800;
+	int coordinateHorizontalMin=200;
+	int coordinateHorizontalMax=20300;
 	unsigned char s[bytes];
 	FILE *f = fopen("/dev/usb/hiddev0", "rb");
 
 	Display* d = XOpenDisplay(NULL);
-	Screen* s = DefaultScreenOfDisplay(d);
-	screenWidth=s->width;
-	screenHeight=s->height;
+	Screen* sc = DefaultScreenOfDisplay(d);
+	screenWidth=sc->width;
+	screenHeight=sc->height;
 
 	while (1) {
 		fread(s, sizeof(char), bytes, f);
 		
 		if(s[4] == SIGNAL) {
 			capture(f, s, bytes, &hover, &vertical, &horizontal);
-			printf("%d-%02d,%02d\n", hover, horizontal, vertical);
-			draw(toPixel(vertical, screenHeight), toPixel(horizontal, screenWidth), hover);
+			//printf("%d-%02d,%02d\n", hover, horizontal, vertical);
+			//draw(toPixel(vertical, screenHeight), toPixel(horizontal, screenWidth), hover);
+			printf("%d:%d, %d\n", hover, toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight));
 		}
 	}
 
@@ -67,7 +72,7 @@ void capture(FILE *f, unsigned char *s, int bytes, int *hover,int *vertical, int
 	fread(s, sizeof(char), bytes, f);
 	dollars = s[4];
 	
-	*vertical = combine(cents, dollars);
+	*horizontal = combine(cents, dollars);
 
 	fread(s, sizeof(char), bytes, f);
 	cents = s[4];
@@ -75,7 +80,7 @@ void capture(FILE *f, unsigned char *s, int bytes, int *hover,int *vertical, int
 	fread(s, sizeof(char), bytes, f);
 	dollars = s[4];
 	
-	*horizontal = combine(cents, dollars);
+	*vertical = combine(cents, dollars);
 
 }
 
@@ -89,8 +94,16 @@ void draw(int vertical, int horizontal, int hover) {
 
 }
 
-int toPixels(int coordinate, int pixel) {
-		
+int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels) {
+	int coordinatesPerPixel=coordinateMax/pixels;
+	int subtract = coordinateMin/coordinatesPerPixel;
+	int pixel = coordinate/coordinatesPerPixel-subtract;
+	if (pixel > pixels) {
+		pixel = pixels;
+	} else if (pixel < 1) {
+		pixel = 1;
+	}
+	return pixel;
 }
 
 
