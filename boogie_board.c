@@ -9,7 +9,7 @@
 
 void capture(FILE *f, unsigned char *s, int bytes, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
-void draw(int vertical, int horizontal, int hover);
+void draw(int vertical, int horizontal, int hover, Display *d, Window w);
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
 int main() {
@@ -33,6 +33,9 @@ int main() {
 	Screen* sc = DefaultScreenOfDisplay(d);
 	screenWidth=sc->width;
 	screenHeight=sc->height;
+	
+	Window root_window = XRootWindow(d, 0);
+	XSelectInput(d, root_window, KeyReleaseMask);
 
 	while (1) {
 		fread(s, sizeof(char), bytes, f);
@@ -41,7 +44,8 @@ int main() {
 			capture(f, s, bytes, &hover, &vertical, &horizontal);
 			//printf("%d-%02d,%02d\n", hover, horizontal, vertical);
 			//draw(toPixel(vertical, screenHeight), toPixel(horizontal, screenWidth), hover);
-			printf("%d:%d, %d\n", hover, toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight));
+			//printf("%d:%d, %d\n", hover, toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight));
+			draw(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight),toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth),hover,d, root_window);
 		}
 	}
 
@@ -90,8 +94,9 @@ int combine(short dollars, short cents) {
 	return combined;
 }
 
-void draw(int vertical, int horizontal, int hover) {
-
+void draw(int vertical, int horizontal, int hover, Display *d, Window w) {
+	XWarpPointer(d, None, w, 0,0,0,0, horizontal, vertical);
+	XFlush(d);
 }
 
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels) {
