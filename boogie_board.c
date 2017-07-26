@@ -1,7 +1,11 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/extensions/XTest.h>
 
 #define HOVER 32
 #define PRESS 33
@@ -9,16 +13,18 @@
 
 void capture(FILE *f, unsigned char *s, int bytes, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
-void draw(int vertical, int horizontal, int hover, Display *d, Window w);
+void press(Display *d, Window w);
+void release(Display *d, Window w);
+void move(int vertical, int horizontal, Display *d, Window w);
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
 int main() {
-	int i;
 	int counter = 0;
 	int zero=1;
 	int vertical;
 	int horizontal;
 	int hover=0;
+	int currentHover=0;
 	int bytes=8;
 	int screenWidth;
 	int screenHeight;
@@ -36,19 +42,24 @@ int main() {
 	
 	Window root_window = XRootWindow(d, 0);
 	XSelectInput(d, root_window, KeyReleaseMask);
-
+	
 	while (1) {
 		fread(s, sizeof(char), bytes, f);
 		
 		if(s[4] == SIGNAL) {
 			capture(f, s, bytes, &hover, &vertical, &horizontal);
-			//printf("%d-%02d,%02d\n", hover, horizontal, vertical);
-			//draw(toPixel(vertical, screenHeight), toPixel(horizontal, screenWidth), hover);
-			//printf("%d:%d, %d\n", hover, toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight));
-			draw(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight),toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth),hover,d, root_window);
+			if(hover != currentHover) {
+				currentHover = hover;
+				if(hover == 1) {
+					release(d, root_window);
+				} else if (hover == 0) {
+					press(d, root_window);
+				}	
+			}
+
+			move(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight),toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), d, root_window);
 		}
 	}
-
 	return 0;
 }
 
@@ -85,7 +96,6 @@ void capture(FILE *f, unsigned char *s, int bytes, int *hover,int *vertical, int
 	dollars = s[4];
 	
 	*vertical = combine(cents, dollars);
-
 }
 
 int combine(short dollars, short cents) {
@@ -94,9 +104,18 @@ int combine(short dollars, short cents) {
 	return combined;
 }
 
-void draw(int vertical, int horizontal, int hover, Display *d, Window w) {
-	XWarpPointer(d, None, w, 0,0,0,0, horizontal, vertical);
+void move(int vertical, int horizontal, Display *d, Window w) {
+	//XWarpPointer(d, None, w, 0,0,0,0, horizontal, vertical);
+	XTestFakeMotionEvent(d, 0, horizontal, vertical, CurrentTime);
 	XFlush(d);
+}
+
+void press(Display *d, Window w) {
+	XTestFakeButtonEvent(d, Button1, True, CurrentTime);
+}
+
+void release(Display *d, Window w) {
+	XTestFakeButtonEvent(d, Button1, False, CurrentTime);
 }
 
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels) {
