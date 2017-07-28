@@ -1,4 +1,0 @@
-I managed to get the vertical and horizontal coordinate from the board, as well as hover signal or not.
-Need to finish toPixel (turning the boogie board coordinate into pixel coordinate).
-
-gcc boogie_board.c -lX11
