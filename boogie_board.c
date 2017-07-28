@@ -6,10 +6,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XTest.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/select.h>
 
 #define HOVER 32
 #define PRESS 33
@@ -21,7 +17,6 @@ void press(Display *d, Window w);
 void release(Display *d, Window w);
 void move(int vertical, int horizontal, Display *d, Window w);
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
-int getInput(FILE *f, unsigned char *s, int bytes, char *path);
 
 int main() {
 	int counter = 0;
@@ -37,7 +32,6 @@ int main() {
 	int coordinateVerticalMax=13800;
 	int coordinateHorizontalMin=200;
 	int coordinateHorizontalMax=20300;
-	int reopenTimer = 0;
 	char *path = "/dev/usb/hiddev0";
 	unsigned char s[bytes];
 	FILE *f = fopen(path, "rb");
@@ -53,13 +47,6 @@ int main() {
 	while (1) {
 		
 		fread(s, sizeof(char), bytes, f);
-		/*if(getInput(f, s, bytes, path) == 1) {
-			printf("Reopening.");
-			fflush(stdout);
-			fclose(f);
-			f = NULL;
-			f = fopen(path, "rb");
-		}*/
 		
 		if(s[4] == SIGNAL) {
 			capture(f, s, bytes, &hover, &vertical, &horizontal);
@@ -77,7 +64,6 @@ int main() {
 
 			move(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight),toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), d, root_window);
 		}
-		reopenTimer += 1;
 	}
 	return 0;
 }
@@ -148,29 +134,6 @@ int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels) {
 	}
 	return pixel;
 }
-
-int getInput(FILE *f, unsigned char *s, int bytes, char *path) {
-	fd_set set;
-	struct timeval timeout;
-	int rv;
-	int filedesc = open(path, O_RDWR);
-	FD_ZERO(&set);
-	FD_SET(filedesc, &set);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 3000000;
-	rv = select(filedesc+1, &set, NULL, NULL, &timeout);
-	if(rv == -1) {
-		return 1;
-		printf("Error\n");
-	} else if (rv == 0) {
-		printf("Timeout\n");
-		return 1;
-	} else {
-		printf("Data\n");
-		fread(s, sizeof(char), bytes, f);
-	}
-}
-
 
 //00 00 06 00 1b 00 00 00 start
 //00 00 06 00 0e 00 00 00 //
