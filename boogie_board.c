@@ -18,7 +18,7 @@ void release(Display *d, Window w);
 void move(int vertical, int horizontal, Display *d, Window w);
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
-int main() {
+int main(int argc, char *argv[]) {
 	int counter = 0;
 	int zero=1;
 	int vertical;
@@ -32,7 +32,7 @@ int main() {
 	int coordinateVerticalMax=13800;
 	int coordinateHorizontalMin=200;
 	int coordinateHorizontalMax=20300;
-	char *path = "/dev/usb/hiddev0";
+	char *path = argv[1];
 	unsigned char s[bytes];
 	FILE *f = fopen(path, "rb");
 
@@ -43,7 +43,7 @@ int main() {
 	
 	Window root_window = XRootWindow(d, 0);
 	XSelectInput(d, root_window, KeyReleaseMask);
-	
+
 	while (1) {
 		
 		fread(s, sizeof(char), bytes, f);
