@@ -7,11 +7,12 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/XTest.h>
 
-#define HOVER 32
-#define PRESS 33
-#define SIGNAL 27
+#define HOVER 32	/* Signal that comes from the board representing a hover. */
+#define PRESS 33	/* Signal that comes from the board representing a press. */
+#define SIGNAL 27	/* Indicates that a data packet has been sent from the board. */
+#define BYTES 8		/* Length in bytes that the boogie board's packet is. */
 
-void capture(FILE *f, unsigned char *s, int bytes, int *hover, int *vertical, int *horizontal);
+void capture(FILE *f, unsigned char *packet, int bytes, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
 void press(Display *d, Window w);
 void release(Display *d, Window w);
@@ -19,37 +20,42 @@ void move(int vertical, int horizontal, Display *d, Window w);
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
 int main(int argc, char *argv[]) {
-	int counter = 0;
-	int zero=1;
 	int vertical;
 	int horizontal;
 	int hover=0;
 	int currentHover=0;
-	int bytes=8;
 	int screenWidth;
 	int screenHeight;
+
+	/* Used to prevent the corners of the screen from being behind the physical plastic on the
+	 * boogie board. */
 	int coordinateVerticalMin=250;
 	int coordinateVerticalMax=13800;
 	int coordinateHorizontalMin=200;
 	int coordinateHorizontalMax=20300;
+
 	char *path = argv[1];
-	unsigned char s[bytes];
+	unsigned char packet[BYTES];
 	FILE *f = fopen(path, "rb");
 
+	/* Find screen dimensions */
+	Window root_window;
 	Display* d = XOpenDisplay(NULL);
 	Screen* sc = DefaultScreenOfDisplay(d);
 	screenWidth=sc->width;
 	screenHeight=sc->height;
 	
-	Window root_window = XRootWindow(d, 0);
+	root_window = XRootWindow(d, 0);
 	XSelectInput(d, root_window, KeyReleaseMask);
 
+	/* The device will continually send data, is intended to be killed with ctrl+c. */
 	while (1) {
 		
-		fread(s, sizeof(char), bytes, f);
+		/* Read the whole data packet into an array. */
+		fread(packet, sizeof(char), BYTES, f);
 		
-		if(s[4] == SIGNAL) {
-			capture(f, s, bytes, &hover, &vertical, &horizontal);
+		if(packet[4] == SIGNAL) {
+			capture(f, packet, BYTES, &hover, &vertical, &horizontal);
 			if(horizontal == 0 && vertical == 0) {
 				continue;
 			}
@@ -62,43 +68,44 @@ int main(int argc, char *argv[]) {
 				}	
 			}
 
-			move(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical, screenHeight),toPixel(coordinateHorizontalMin, coordinateHorizontalMax, horizontal, screenWidth), d, root_window);
+			move(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical,
+				screenHeight),toPixel(coordinateHorizontalMin,
+				coordinateHorizontalMax, horizontal, screenWidth), d, root_window);
 		}
 	}
 	return 0;
 }
 
-void capture(FILE *f, unsigned char *s, int bytes, int *hover,int *vertical, int *horizontal) {
+void capture(FILE *f, unsigned char *packet, int bytes, int *hover,int *vertical, int *horizontal) {
 
-	int i;
 	short cents;
 	short dollars;
 
-	//eat up two lines of useless information
-	fread(s, sizeof(char), bytes, f);
-	fread(s, sizeof(char), bytes, f);
+	/* eat up two lines of useless information */
+	fread(packet, sizeof(char), bytes, f);
+	fread(packet, sizeof(char), bytes, f);
 
-	fread(s, sizeof(char), bytes, f);
+	fread(packet, sizeof(char), bytes, f);
 
-	if(s[4] == HOVER) {
+	if(packet[4] == HOVER) {
 		*hover=1;
-	} else if (s[4] == PRESS) {
+	} else if (packet[4] == PRESS) {
 		*hover=0;	
 	}
 
-	fread(s, sizeof(char), bytes, f);
-	cents = s[4];
+	fread(packet, sizeof(char), bytes, f);
+	cents = packet[4];
 	
-	fread(s, sizeof(char), bytes, f);
-	dollars = s[4];
+	fread(packet, sizeof(char), bytes, f);
+	dollars = packet[4];
 	
 	*horizontal = combine(cents, dollars);
 
-	fread(s, sizeof(char), bytes, f);
-	cents = s[4];
+	fread(packet, sizeof(char), bytes, f);
+	cents = packet[4];
 	
-	fread(s, sizeof(char), bytes, f);
-	dollars = s[4];
+	fread(packet, sizeof(char), bytes, f);
+	dollars = packet[4];
 	
 	*vertical = combine(cents, dollars);
 }
@@ -110,7 +117,6 @@ int combine(short dollars, short cents) {
 }
 
 void move(int vertical, int horizontal, Display *d, Window w) {
-	//XWarpPointer(d, None, w, 0,0,0,0, horizontal, vertical);
 	XTestFakeMotionEvent(d, 0, horizontal, vertical, CurrentTime);
 	XFlush(d);
 }
@@ -135,18 +141,22 @@ int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels) {
 	return pixel;
 }
 
-//00 00 06 00 1b 00 00 00 start
-//00 00 06 00 0e 00 00 00 //
-//00 00 06 00 01 00 00 00 //
-//00 00 06 00 20 00 00 00 press or hover
-//00 00 06 00 58 00 00 00 vertical cents
-//00 00 06 00 07 00 00 00 vertical dollars
-//00 00 06 00 a8 00 00 00 horizontal cents
-//00 00 06 00 15 00 00 00 horizontal dollars
-//00 00 06 00 00 00 00 00 //
-//00 00 06 00 00 00 00 00 //
-//00 00 06 00 20 00 00 00 //
-//00 00 06 00 00 00 00 00 //
-//00 00 06 00 00 00 00 00 //
-//00 00 06 00 00 00 00 00 //
-//00 00 06 00 00 00 00 00 //
+/* Example of what the data packet from the boogie board looks like. */
+
+/*
+00 00 06 00 1b 00 00 00 start
+00 00 06 00 0e 00 00 00 //
+00 00 06 00 01 00 00 00 //
+00 00 06 00 20 00 00 00 press or hover
+00 00 06 00 58 00 00 00 vertical cents
+00 00 06 00 07 00 00 00 vertical dollars
+00 00 06 00 a8 00 00 00 horizontal cents
+00 00 06 00 15 00 00 00 horizontal dollars
+00 00 06 00 00 00 00 00 //
+00 00 06 00 00 00 00 00 //
+00 00 06 00 20 00 00 00 //
+00 00 06 00 00 00 00 00 //
+00 00 06 00 00 00 00 00 //
+00 00 06 00 00 00 00 00 //
+00 00 06 00 00 00 00 00 //
+*/
