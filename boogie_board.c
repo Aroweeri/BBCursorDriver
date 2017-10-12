@@ -12,6 +12,13 @@
 #define SIGNAL 27	/* Indicates that a data packet has been sent from the board. */
 #define BYTES 8		/* Length in bytes that the boogie board's packet is. */
 
+/* Used to prevent the corners of the screen from being behind the physical plastic on the
+ * boogie board. */
+#define VERTICAL_MIN 250
+#define VERTICAL_MAX 13800
+#define HORIZONTAL_MIN 200
+#define HORIZONTAL_MAX 20300
+
 void capture(FILE *f, unsigned char *packet, int bytes, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
 void press(Display *d, Window w);
@@ -26,13 +33,6 @@ int main(int argc, char *argv[]) {
 	int currentHover=0;
 	int screenWidth;
 	int screenHeight;
-
-	/* Used to prevent the corners of the screen from being behind the physical plastic on the
-	 * boogie board. */
-	int coordinateVerticalMin=250;
-	int coordinateVerticalMax=13800;
-	int coordinateHorizontalMin=200;
-	int coordinateHorizontalMax=20300;
 
 	char *path = argv[1];
 	unsigned char packet[BYTES];
@@ -52,32 +52,42 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		
 		/* Read the whole data packet into an array. */
+		/* If the boogie board is not sending data the program will pause and wait here. */
 		fread(packet, sizeof(char), BYTES, f);
 		
+		/* If the packet contains the start signal. */
 		if(packet[4] == SIGNAL) {
+			
+			/* fill array with the whole packet. */
 			capture(f, packet, BYTES, &hover, &vertical, &horizontal);
+
+			/* ignore garbage signals from the boogie board. */
 			if(horizontal == 0 && vertical == 0) {
 				continue;
 			}
+
+			/* Only change hover status if it is different. */
 			if(hover != currentHover) {
 				currentHover = hover;
 				if(hover == 1) {
 					release(d, root_window);
 				} else if (hover == 0) {
 					press(d, root_window);
-				}	
+				}
 			}
 
-			move(toPixel(coordinateVerticalMin, coordinateVerticalMax, vertical,
-				screenHeight),toPixel(coordinateHorizontalMin,
-				coordinateHorizontalMax, horizontal, screenWidth), d, root_window);
+			move(toPixel(VERTICAL_MIN, VERTICAL_MAX, vertical,
+				screenHeight),toPixel(HORIZONTAL_MIN,
+				HORIZONTAL_MAX, horizontal, screenWidth), d, root_window);
 		}
 	}
 	return 0;
 }
 
+/* Parse/split out the coordinates and press/release status from the packet. */
 void capture(FILE *f, unsigned char *packet, int bytes, int *hover,int *vertical, int *horizontal) {
 
+	/* least significant and most significant part of the coordinates in the packet. */
 	short cents;
 	short dollars;
 
@@ -116,19 +126,23 @@ int combine(short dollars, short cents) {
 	return combined;
 }
 
+/* relocate the pointer. */
 void move(int vertical, int horizontal, Display *d, Window w) {
 	XTestFakeMotionEvent(d, 0, horizontal, vertical, CurrentTime);
 	XFlush(d);
 }
 
+/* press the mouse down */
 void press(Display *d, Window w) {
 	XTestFakeButtonEvent(d, Button1, True, CurrentTime);
 }
 
+/* release the mouse */
 void release(Display *d, Window w) {
 	XTestFakeButtonEvent(d, Button1, False, CurrentTime);
 }
 
+/* convert the coordinates on the boogie board to pixels on the screen. */
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels) {
 	int coordinatesPerPixel=coordinateMax/pixels;
 	int subtract = coordinateMin/coordinatesPerPixel;
