@@ -24,11 +24,11 @@ your boogie board plugged in and press buttons/draw on it to see if any data is 
 With your boogie board connected to your computer via usb, run your newly generated executable with
 elevated priveledges, giving an argument to the device file that represents your boogie board:
 
-	sudo bash bbcursordriver.sh "/dev/usb/hiddev0"
+	sudo bbcursordriver /dev/usb/hiddev0
 
-The intermediary shell script exists because occasionally the boogie board stops sending data, which
-will result in the inability to use it. Basically the shell script restarts the process every second
-to prevent the user from having to go and manually kill the process when this happens.
+You may find that your cursor freezes and the boogie board becomes unresponsive at random
+intervals. This is a known problem and I've been investigating it for some time. The current
+solution is to kill the process and restart it.
 
 You can now control your cursor with the precision of a pen! Enjoy
 The orientation to place the boogie board for it to match with your screen is with the plug/cord
