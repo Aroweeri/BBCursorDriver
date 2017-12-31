@@ -30,7 +30,7 @@ You may find that your cursor freezes and the boogie board becomes unresponsive 
 intervals. This is a known problem and I've been investigating it for some time. The current
 solution is to kill the process and restart it.
 
-You can now control your cursor with the precision of a pen! Enjoy
+You can now control your cursor with the precision of a pen! Enjoy.
 The orientation to place the boogie board for it to match with your screen is with the plug/cord
 facing up.
 
