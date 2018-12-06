@@ -4,3 +4,5 @@ lsusb_command
 reference_links.txt
 usb_experiment_program.c
 bbcursordriver.sh
+boogie_board_packet_example
+lsusb_boogie_board_output.txt

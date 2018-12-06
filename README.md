@@ -11,24 +11,15 @@ below command:
 
 Compile your driver with the below command:
 
-	gcc -o bbcursordriver boogie_board.c -lX11 -lXtst
+	gcc -o bbcursordriver boogie_board.c -lX11 -lXtst -lusb-1.0
 
 ## Running
 
-Before running your driver you need to find out what device file represents your boogie board. On
-Ubuntu 16.04 I found that /dev/usb/hiddev0 was the one for me. You can simply cat the file with
-your boogie board plugged in and press buttons/draw on it to see if any data is coming through:
+After compiling the program, you only need to run it with
 
-	sudo cat /dev/usb/hiddev0
+sudo ./bbcursordriver
 
-With your boogie board connected to your computer via usb, run your newly generated executable with
-elevated priveledges, giving an argument to the device file that represents your boogie board:
-
-	sudo bbcursordriver /dev/usb/hiddev0
-
-You may find that your cursor freezes and the boogie board becomes unresponsive at random
-intervals. This is a known problem and I've been investigating it for some time. The current
-solution is to kill the process and restart it.
+The program automatically detects the presence of a boogie board rip to read from.
 
 You can now control your cursor with the precision of a pen! Enjoy.
 The orientation to place the boogie board for it to match with your screen is with the plug/cord

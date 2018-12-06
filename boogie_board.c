@@ -6,27 +6,29 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XTest.h>
+#include <libusb-1.0/libusb.h>
 
-#define HOVER 32	/* Signal that comes from the board representing a hover. */
-#define PRESS 33	/* Signal that comes from the board representing a press. */
-#define SIGNAL 27	/* Indicates that a data packet has been sent from the board. */
-#define BYTES 8		/* Length in bytes that the boogie board's packet is. */
+#define HOVER  32 /* Signal that comes from the board representing a hover. */
+#define PRESS  33 /* Signal that comes from the board representing a press. */
+#define SIGNAL 27 /* Indicates that a data packet has been sent from the board. */
 
 /* Used to prevent the corners of the screen from being behind the physical plastic on the
  * boogie board. */
-#define VERTICAL_MIN 250
-#define VERTICAL_MAX 13800
+#define VERTICAL_MIN   250
+#define VERTICAL_MAX   13800
 #define HORIZONTAL_MIN 200
 #define HORIZONTAL_MAX 20300
+#define VID            0x2047
+#define PID            0xffe7
 
-void capture(FILE *f, unsigned char *packet, int bytes, int *hover, int *vertical, int *horizontal);
+void capture(unsigned char *data, int *hover, int *vertical, int *horizontal);
 int combine(short dollars, short cents);
 void press(Display *d, Window w);
 void release(Display *d, Window w);
 void move(int vertical, int horizontal, Display *d, Window w);
 int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
-int main(int argc, char *argv[]) {
+int main() {
 	int vertical;
 	int horizontal;
 	int hover=0;
@@ -34,9 +36,36 @@ int main(int argc, char *argv[]) {
 	int screenWidth;
 	int screenHeight;
 
-	char *path = argv[1];
-	unsigned char packet[BYTES];
-	FILE *f = fopen(path, "rb");
+	/* libusb variables */
+	libusb_device_handle *devHandle;
+	unsigned char endpoint;
+	unsigned char* data;
+	int length;
+	int *transferred;
+	unsigned int timeout;
+	struct libusb_context* context;
+	int i;
+
+	/* setup libusb */
+	libusb_init(&context);
+	devHandle = libusb_open_device_with_vid_pid(context,VID,PID);
+	if(devHandle == NULL) {
+		printf("Boogie board does not appear to be connected. libusb_open_device_with_vid_pid() returned NULL.\n");
+		return 1;
+	}
+	
+	endpoint =     0x83;
+	data =         (char*)malloc(sizeof(char)*64);
+	length =       64;
+	transferred =  (int*)malloc(sizeof(int));
+	*transferred = 0;
+	timeout = 0;
+	for(i = 0;i<64;i++) {
+		data[i] = 0;
+	}
+	
+
+	//unsigned char packet[BYTES];
 
 	/* Find screen dimensions */
 	Window root_window;
@@ -50,16 +79,16 @@ int main(int argc, char *argv[]) {
 
 	/* The device will continually send data, is intended to be killed with ctrl+c. */
 	while (1) {
-		
+
 		/* Read the whole data packet into an array. */
 		/* If the boogie board is not sending data the program will pause and wait here. */
-		fread(packet, sizeof(char), BYTES, f);
-		
+		libusb_interrupt_transfer(devHandle, endpoint, data, length, transferred, timeout);
+
 		/* If the packet contains the start signal. */
-		if(packet[4] == SIGNAL) {
-			
+		if(data[0] == SIGNAL) {
+
 			/* fill array with the whole packet. */
-			capture(f, packet, BYTES, &hover, &vertical, &horizontal);
+			capture(data, &hover, &vertical, &horizontal);
 
 			/* ignore garbage signals from the boogie board. */
 			if(horizontal == 0 && vertical == 0) {
@@ -85,37 +114,22 @@ int main(int argc, char *argv[]) {
 }
 
 /* Parse/split out the coordinates and press/release status from the packet. */
-void capture(FILE *f, unsigned char *packet, int bytes, int *hover,int *vertical, int *horizontal) {
-
+void capture(unsigned char *data, int *hover, int *vertical, int *horizontal) {
 	/* least significant and most significant part of the coordinates in the packet. */
 	short cents;
 	short dollars;
 
-	/* eat up two lines of useless information */
-	fread(packet, sizeof(char), bytes, f);
-	fread(packet, sizeof(char), bytes, f);
-
-	fread(packet, sizeof(char), bytes, f);
-
-	if(packet[4] == HOVER) {
+	if(data[3] == HOVER) {
 		*hover=1;
-	} else if (packet[4] == PRESS) {
+	} else if (data[3] == PRESS) {
 		*hover=0;	
 	}
 
-	fread(packet, sizeof(char), bytes, f);
-	cents = packet[4];
-	
-	fread(packet, sizeof(char), bytes, f);
-	dollars = packet[4];
-	
+	cents = data[4];
+	dollars = data[5];
 	*horizontal = combine(cents, dollars);
-
-	fread(packet, sizeof(char), bytes, f);
-	cents = packet[4];
-	
-	fread(packet, sizeof(char), bytes, f);
-	dollars = packet[4];
+	cents = data[6];
+	dollars = data[7];
 	
 	*vertical = combine(cents, dollars);
 }

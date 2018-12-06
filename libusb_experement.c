@@ -28,8 +28,8 @@ int main (int argc, char *argv) {
 	for(i = 0;i<64;i++) {
 		data[i] = 0;
 	}
-	printf("detach kernel driver returns: %d\n", libusb_detach_kernel_driver(devHandle, 1));
-	printf("claim_interface returns: %d\n", libusb_claim_interface(devHandle, 2));
+	//printf("detach kernel driver returns: %d\n", libusb_detach_kernel_driver(devHandle, 1));
+	//printf("claim_interface returns: %d\n", libusb_claim_interface(devHandle, 2));
 
 	while(1) {
 		printf("Returns: %d\n", libusb_interrupt_transfer(devHandle, endpoint, data, length, transferred, timeout));
