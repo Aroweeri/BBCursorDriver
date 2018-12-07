@@ -49,6 +49,8 @@ int main() {
 	/* setup libusb */
 	libusb_init(&context);
 	devHandle = libusb_open_device_with_vid_pid(context,VID,PID);
+	libusb_detach_kernel_driver(devHandle, 1);
+	libusb_claim_interface(devHandle, 1);
 	if(devHandle == NULL) {
 		printf("Boogie board does not appear to be connected. libusb_open_device_with_vid_pid() returned NULL.\n");
 		return 1;
