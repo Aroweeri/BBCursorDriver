@@ -7,6 +7,7 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/XTest.h>
 #include <libusb-1.0/libusb.h>
+#include "main.h"
 
 #define HOVER  32 /* Signal that comes from the board representing a hover. */
 #define PRESS  33 /* Signal that comes from the board representing a press. */
@@ -21,12 +22,6 @@
 #define VID            0x2047
 #define PID            0xffe7
 
-void capture(unsigned char *data, int *hover, int *vertical, int *horizontal);
-int combine(short dollars, short cents);
-void press(Display *d, Window w);
-void release(Display *d, Window w);
-void move(int vertical, int horizontal, Display *d, Window w);
-int toPixel(int coordinateMin, int coordinateMax, int coordinate, int pixels);
 
 int main() {
 	int vertical;
@@ -45,6 +40,9 @@ int main() {
 	unsigned int timeout;
 	struct libusb_context* context;
 	int i;
+	Window root_window;
+	Display* d;
+	Screen* sc;
 
 	/* setup libusb */
 	libusb_init(&context);
@@ -57,7 +55,7 @@ int main() {
 	}
 	
 	endpoint =     0x83;
-	data =         (char*)malloc(sizeof(char)*64);
+	data =         (unsigned char*)malloc(sizeof(char)*64);
 	length =       64;
 	transferred =  (int*)malloc(sizeof(int));
 	*transferred = 0;
@@ -67,12 +65,9 @@ int main() {
 	}
 	
 
-	//unsigned char packet[BYTES];
-
 	/* Find screen dimensions */
-	Window root_window;
-	Display* d = XOpenDisplay(NULL);
-	Screen* sc = DefaultScreenOfDisplay(d);
+	d = XOpenDisplay(NULL);
+	sc = DefaultScreenOfDisplay(d);
 	screenWidth=sc->width;
 	screenHeight=sc->height;
 	
