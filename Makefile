@@ -8,4 +8,5 @@ main: clean
 	$(CC) $(OUTPUT) $(OPTIONS) main.c $(LIBS)
 
 clean:
-	if [ -e $(EXE) ] ; then  rm $(EXE) ; fi
+	rm -f $(EXE)
+	rm -f *.gch
