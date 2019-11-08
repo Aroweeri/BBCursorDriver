@@ -68,7 +68,7 @@ int main() {
 		printf("Boogie Board connected.\nPress ctrl+c to exit.\n");
 	}
 
-	endpoint =     0x83;
+	endpoint =     0x83; /* boogie board endpoint */
 	data =         (unsigned char*)malloc(sizeof(char)*64);
 	length =       64;
 	transferred =  (int*)malloc(sizeof(int));
@@ -121,6 +121,14 @@ int main() {
 				HORIZONTAL_MAX, horizontal, screenWidth), d, root_window);
 		}
 	}
+
+	/* free memory */
+	libusb_close(devHandle);
+	libusb_exit(context);
+	XCloseDisplay(d);
+	free(data);
+	free(transferred);
+
 	printf("Exiting...\n");
 	return 0;
 }
