@@ -52,8 +52,10 @@ int main() {
 	if(devHandle == NULL) {
 		printf("Boogie board does not appear to be connected. libusb_open_device_with_vid_pid() returned NULL.\n");
 		return 1;
+	} else {
+		printf("Boogie Board connected.\nPress ctrl+c to exit.\n");
 	}
-	
+
 	endpoint =     0x83;
 	data =         (unsigned char*)malloc(sizeof(char)*64);
 	length =       64;
