@@ -9,9 +9,8 @@ below command:
 
 	sudo apt-get install libxtst.dev
 
-Compile your driver with the below command:
+Compile with `make`
 
-	gcc -o bbcursordriver boogie_board.c -lX11 -lXtst -lusb-1.0
 
 ## Running
 
