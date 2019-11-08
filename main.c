@@ -7,6 +7,7 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/XTest.h>
 #include <libusb-1.0/libusb.h>
+#include <signal.h>
 #include "main.h"
 
 #define HOVER  32 /* Signal that comes from the board representing a hover. */
@@ -22,6 +23,13 @@
 #define VID            0x2047
 #define PID            0xffe7
 
+volatile char shouldNotExit = 1;
+
+/* signal handler for main */
+void sigint_handler(int sig) {
+	printf("Here.\n");
+	shouldNotExit = 0;
+}
 
 int main() {
 	int vertical;
@@ -30,6 +38,7 @@ int main() {
 	int currentHover=0;
 	int screenWidth;
 	int screenHeight;
+
 
 	/* libusb variables */
 	libusb_device_handle *devHandle;
@@ -43,6 +52,9 @@ int main() {
 	Window root_window;
 	Display* d;
 	Screen* sc;
+
+	/* setup signal handler */
+	signal(SIGINT, sigint_handler);
 
 	/* setup libusb */
 	libusb_init(&context);
@@ -61,7 +73,7 @@ int main() {
 	length =       64;
 	transferred =  (int*)malloc(sizeof(int));
 	*transferred = 0;
-	timeout = 0;
+	timeout = 1;
 	for(i = 0;i<64;i++) {
 		data[i] = 0;
 	}
@@ -77,7 +89,7 @@ int main() {
 	XSelectInput(d, root_window, KeyReleaseMask);
 
 	/* The device will continually send data, is intended to be killed with ctrl+c. */
-	while (1) {
+	while (shouldNotExit) {
 
 		/* Read the whole data packet into an array. */
 		/* If the boogie board is not sending data the program will pause and wait here. */
@@ -109,6 +121,7 @@ int main() {
 				HORIZONTAL_MAX, horizontal, screenWidth), d, root_window);
 		}
 	}
+	printf("Exiting...\n");
 	return 0;
 }
 
