@@ -93,6 +93,7 @@ int main() {
 
 		/* Read the whole data packet into an array. */
 		/* If the boogie board is not sending data the program will pause and wait here. */
+		memset(data, 0, 64);
 		libusb_interrupt_transfer(devHandle, endpoint, data, length, transferred, timeout);
 
 		/* If the packet contains the start signal. */
